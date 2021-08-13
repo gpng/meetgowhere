@@ -1,4 +1,4 @@
-import React, { FC, useRef, useState } from 'react';
+import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
   useBoolean,
   VStack,
 } from '@chakra-ui/react';
+import Router, { useRouter } from 'next/router';
 
 import { Postcode } from 'models/postcode';
 
@@ -22,34 +23,118 @@ import { searchPostcode } from 'actions/onemap';
 interface Props {
   postcodes: Array<Postcode>;
   setPostcodes: (postcodes: Array<Postcode>) => void;
-  calculate: (drivingTime: number) => void;
+  calculate: (drivingTime: number, postcodes: Array<Postcode>) => void;
   isCalculating: boolean;
 }
 
+const DRIVING_TIMES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+
 const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculating }) => {
+  const { isReady, query } = useRouter();
+
   const [code, setCode] = useState('');
   const [drivingTime, setDrivingTime] = useState(10);
   const [isInvalid, setIsInvalid] = useBoolean();
   const [isLoading, setIsLoading] = useBoolean();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const initialRef = useRef(false);
 
-  const checkPostcode = async (): Promise<void> => {
-    setIsLoading.on();
-    const res = await searchPostcode(code);
-    setIsLoading.off();
-    if (!res) {
-      setIsInvalid.on();
-      return;
+  useEffect(() => {
+    const checkQueries = async (
+      postalCodesQuery?: string,
+      drivingTimeQuery?: string,
+    ): Promise<void> => {
+      const newQuery: Record<string, string | undefined> = {};
+      let newDrivingTime: number | null = null;
+      const validPostalCodes: Array<Postcode> = [];
+
+      let replaceQuery = false;
+      if (drivingTimeQuery) {
+        newQuery.drivingTime = drivingTimeQuery;
+        try {
+          newDrivingTime = parseInt(drivingTimeQuery, 10);
+          if (!DRIVING_TIMES.includes(newDrivingTime)) {
+            delete newQuery.drivingTime;
+            replaceQuery = true;
+          } else {
+            setDrivingTime(newDrivingTime);
+          }
+        } catch (e) {
+          delete newQuery.drivingTime;
+          replaceQuery = true;
+        }
+      }
+
+      if (postalCodesQuery) {
+        let replacePostalCodesQuery = false;
+        newQuery.postalCodes = postalCodesQuery;
+        const split = postalCodesQuery.split(',');
+        for (let i = 0; i < split.length; i += 1) {
+          const postalCode = split[i];
+          const postalCodeRes = await checkPostcode(postalCode, []);
+          if (postalCodeRes) {
+            validPostalCodes.push(postalCodeRes);
+          } else {
+            replacePostalCodesQuery = true;
+          }
+        }
+
+        if (replacePostalCodesQuery) {
+          replaceQuery = true;
+          if (!validPostalCodes.length) {
+            delete newQuery.postalCodes;
+          } else {
+            newQuery.postalCodes = validPostalCodes.map((postcode) => postcode.code).join(',');
+          }
+        }
+        setPostcodes(validPostalCodes);
+      }
+
+      if (replaceQuery) {
+        Router.replace({
+          pathname: '/',
+          query: newQuery,
+        });
+      }
+
+      if (validPostalCodes.length >= 2) {
+        calculate(newDrivingTime || 10, validPostalCodes);
+      }
+    };
+
+    if (!initialRef.current && isReady) {
+      initialRef.current = true;
+
+      checkQueries(
+        query['postalCodes'] as string | undefined,
+        query['drivingTime'] as string | undefined,
+      );
     }
-    if (!postcodes.some((postcode) => postcode.code === res.code)) {
-      const newPostcodes = [...postcodes];
-      newPostcodes.push(res);
-      setPostcodes(newPostcodes);
-    }
-    setCode('');
-    inputRef.current?.focus();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, query]);
+
+  const checkPostcode = useCallback(
+    async (postalCode: string, currentPostcodes: Array<Postcode>): Promise<Postcode | null> => {
+      setIsLoading.on();
+      const res = await searchPostcode(postalCode);
+      setIsLoading.off();
+      if (!res) {
+        setIsInvalid.on();
+        return null;
+      }
+      if (!currentPostcodes.some((postcode) => postcode.code === res.code)) {
+        const newPostcodes = [...currentPostcodes];
+        newPostcodes.push(res);
+        setPostcodes(newPostcodes);
+      }
+      setCode('');
+      inputRef.current?.focus();
+      return res;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const onClickPostcode = (index: number): void => {
     const newPostcodes = [...postcodes];
@@ -69,7 +154,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       <form
         onSubmit={(ev) => {
           ev.preventDefault();
-          checkPostcode();
+          checkPostcode(code, postcodes);
         }}
       >
         <HStack>
@@ -104,7 +189,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
           onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
           value={drivingTime}
         >
-          {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map((x) => (
+          {DRIVING_TIMES.map((x) => (
             <option key={x} value={x}>
               {x}
             </option>
@@ -114,7 +199,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       <Box>
         <Button
           disabled={isCalculating || postcodes.length < 2}
-          onClick={() => calculate(drivingTime)}
+          onClick={() => calculate(drivingTime, postcodes)}
         >
           Calculate
         </Button>

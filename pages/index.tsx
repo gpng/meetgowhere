@@ -8,6 +8,7 @@ import ReactMapGl, {
 import axios from 'axios';
 import { intersect } from '@turf/turf';
 import { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import Router from 'next/router';
 
 import { Box, useBoolean } from '@chakra-ui/react';
 
@@ -102,19 +103,26 @@ const Index: FC = () => {
     return isochrone;
   };
 
-  const calculate = async (drivingTime: number): Promise<void> => {
+  const calculate = async (drivingTime: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
     const promises: Array<Promise<Isochrone>> = [];
 
-    postcodes.forEach((x) => {
+    postalCodes.forEach((x) => {
       promises.push(getIsochrone(x, drivingTime));
     });
 
     const res = await Promise.all(promises);
     setIsochrones(res);
 
+    Router.replace({
+      pathname: '/',
+      query: {
+        drivingTime,
+        postalCodes: postalCodes.map((postcode) => postcode.code).join(','),
+      },
+    });
+
     const validGeojsons = res.filter((x) => x.geojson).map((x) => x.geojson);
-    console.log('validGeojsons: ', validGeojsons);
     let intersection = (validGeojsons as Array<FeatureCollection>)[0].features[0] as Feature<
       Polygon | MultiPolygon
     >;
