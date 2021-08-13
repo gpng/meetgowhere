@@ -149,6 +149,7 @@ const Index: FC = () => {
         {...viewport}
         onViewportChange={(nextViewport: Viewport) => setViewport(nextViewport)}
         mapboxApiAccessToken={MAPBOX_TOKEN}
+        mapStyle="mapbox://styles/mapbox/light-v10"
         onLoad={() => {
           fitMapToBounds(sgBbox);
         }}
