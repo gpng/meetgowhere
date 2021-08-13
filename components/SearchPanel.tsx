@@ -13,6 +13,7 @@ import {
   TagLabel,
   useBoolean,
   VStack,
+  Text,
 } from '@chakra-ui/react';
 import Router, { useRouter } from 'next/router';
 
@@ -204,6 +205,15 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
           Calculate
         </Button>
       </Box>
+      <Text fontSize="xs">
+        The areas which are accessible from all postal codes in the chosen driving time is
+        highlighted in{' '}
+        <Text as="span" color="green">
+          green
+        </Text>
+        , if there is no green highlight, then 1 or more postal codes can not meet the others on
+        time.
+      </Text>
     </VStack>
   );
 };
