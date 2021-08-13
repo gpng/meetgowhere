@@ -158,10 +158,11 @@ const Index: FC = () => {
         {postcodes.map((postcode) => (
           <Marker key={postcode.code} longitude={postcode.lon} latitude={postcode.lat}>
             <Box
-              bg="red"
+              bg="#5a3fc0"
               h={4}
               w={4}
               borderRadius="50%"
+              transform="translate(-50%, -50%)"
               onClick={() => {
                 if (hoveredPostcode === postcode.code) {
                   setHoveredPostcode(undefined);
