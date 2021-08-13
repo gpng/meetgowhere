@@ -152,6 +152,11 @@ const Index: FC = () => {
         onLoad={() => {
           fitMapToBounds(sgBbox);
         }}
+        onClick={() => {
+          if (hoveredPostcode) {
+            setHoveredPostcode(undefined);
+          }
+        }}
       >
         <Isochrones isochrones={isochrones} hoveredPostcode={hoveredPostcode} />
         {overlap && <Overlap geojson={overlap} />}
