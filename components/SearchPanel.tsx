@@ -1,4 +1,4 @@
-import React, { FC, useRef, useState } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -100,7 +100,10 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       </Flex>
       <FormControl id="drivingTime">
         <FormLabel>Driving time (minutes)</FormLabel>
-        <Select onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}>
+        <Select
+          onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
+          value={drivingTime}
+        >
           {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map((x) => (
             <option key={x} value={x}>
               {x}
