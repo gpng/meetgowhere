@@ -49,6 +49,13 @@ const About: FC = () => {
               </Text>{' '}
               and represents the area where every postal code can all meet each other within the
               driving time specified.
+              <br />
+              <br />
+              If there is no{' '}
+              <Text as="span" color="green">
+                green
+              </Text>{' '}
+              highlight, then at least 1 postal code can not meet the others in the time specified.
             </Text>
             <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
               Why?

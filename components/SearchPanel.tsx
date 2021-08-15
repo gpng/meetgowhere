@@ -14,6 +14,7 @@ import {
   useBoolean,
   VStack,
   Text,
+  useDisclosure,
 } from '@chakra-ui/react';
 import Router, { useRouter } from 'next/router';
 
@@ -39,6 +40,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
   const [drivingTime, setDrivingTime] = useState(10);
   const [isInvalid, setIsInvalid] = useBoolean();
   const [isLoading, setIsLoading] = useBoolean();
+  const { isOpen: isHidden, onToggle } = useDisclosure();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const initialRef = useRef(false);
@@ -146,78 +148,86 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
   };
 
   return (
-    <VStack
+    <Box
       pointerEvents="auto"
-      maxW="300px"
+      w={isHidden ? 'auto' : '300px'}
+      display={isHidden ? 'inline-block' : 'block'}
+      maxW="full"
       bg="white"
       p={2}
       borderRadius={4}
-      alignItems="flex-start"
     >
-      <About />
-      <form
-        onSubmit={(ev) => {
-          ev.preventDefault();
-          checkPostcode(code, postcodes);
-        }}
-      >
-        <HStack>
-          <Input
-            value={code}
-            onChange={(ev) => {
-              setCode(ev.target.value);
-              if (isInvalid && ev.target.value !== code) {
-                setIsInvalid.off();
-              }
-            }}
-            isInvalid={isInvalid}
-            ref={inputRef}
-            placeholder="Postal code"
-          />
-          <Button type="submit" disabled={isLoading || !code || code === ''}>
-            Add
-          </Button>
-        </HStack>
-      </form>
-      <Flex flexWrap="wrap">
-        {postcodes.map((postcode, i) => (
-          <Tag key={postcode.code} mb={2} mr={2}>
-            <TagLabel>{postcode.code}</TagLabel>
-            <TagCloseButton onClick={() => onClickPostcode(i)} />
-          </Tag>
-        ))}
-      </Flex>
-      <FormControl id="drivingTime">
-        <FormLabel>Driving time (minutes)</FormLabel>
-        <Select
-          onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
-          value={drivingTime}
+      <VStack maxW="full" alignItems="flex-start" display={isHidden ? 'none' : 'flex'}>
+        <About />
+        <form
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            checkPostcode(code, postcodes);
+          }}
         >
-          {DRIVING_TIMES.map((x) => (
-            <option key={x} value={x}>
-              {x}
-            </option>
+          <HStack>
+            <Input
+              value={code}
+              onChange={(ev) => {
+                setCode(ev.target.value);
+                if (isInvalid && ev.target.value !== code) {
+                  setIsInvalid.off();
+                }
+              }}
+              isInvalid={isInvalid}
+              ref={inputRef}
+              placeholder="Postal code"
+            />
+            <Button type="submit" disabled={isLoading || !code || code === ''}>
+              Add
+            </Button>
+          </HStack>
+        </form>
+        <Flex flexWrap="wrap">
+          {postcodes.map((postcode, i) => (
+            <Tag key={postcode.code} mb={2} mr={2}>
+              <TagLabel>{postcode.code}</TagLabel>
+              <TagCloseButton onClick={() => onClickPostcode(i)} />
+            </Tag>
           ))}
-        </Select>
-      </FormControl>
-      <Box>
-        <Button
-          disabled={isCalculating || postcodes.length < 1}
-          onClick={() => calculate(drivingTime, postcodes)}
-        >
-          Calculate
-        </Button>
-      </Box>
-      <Text fontSize="xs">
-        The areas which are accessible from all postal codes in the chosen driving time is
-        highlighted in{' '}
-        <Text as="span" color="green">
-          green
+        </Flex>
+        <FormControl id="drivingTime">
+          <FormLabel>Driving time (minutes)</FormLabel>
+          <Select
+            onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
+            value={drivingTime}
+          >
+            {DRIVING_TIMES.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+        <Box>
+          <Button
+            disabled={isCalculating || postcodes.length < 1}
+            onClick={() => calculate(drivingTime, postcodes)}
+          >
+            Calculate
+          </Button>
+        </Box>
+        <Text fontSize="xs">
+          The areas which are accessible from all postal codes in the chosen driving time is
+          highlighted in{' '}
+          <Text as="span" color="green">
+            green
+          </Text>
+          , if there is no green highlight, then 1 or more postal codes can not meet the others on
+          time.
         </Text>
-        , if there is no green highlight, then 1 or more postal codes can not meet the others on
-        time.
-      </Text>
-    </VStack>
+      </VStack>
+      <Flex justifyContent="flex-end" w={isHidden ? 'auto' : 'full'}>
+        <Button size="xs" variant="ghost" textDecor="underline" onClick={onToggle}>
+          {isHidden ? 'Expand panel' : 'Hide panel'}
+        </Button>
+      </Flex>
+    </Box>
   );
 };
 
