@@ -17,6 +17,8 @@ import {
 } from '@chakra-ui/react';
 import Router, { useRouter } from 'next/router';
 
+import About from './About';
+
 import { Postcode } from 'models/postcode';
 
 import { searchPostcode } from 'actions/onemap';
@@ -152,6 +154,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       borderRadius={4}
       alignItems="flex-start"
     >
+      <About />
       <form
         onSubmit={(ev) => {
           ev.preventDefault();
