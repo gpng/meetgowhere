@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import ReactMapGl, {
   WebMercatorViewport,
   FlyToInterpolator,
@@ -54,6 +54,8 @@ const Index: FC = () => {
   const [overlap, setOverlap] = useState<Feature<Polygon | MultiPolygon>>();
   const [isLoading, setIsLoading] = useBoolean();
 
+  const cancelInitialPan = useRef(false);
+
   useEffect(() => {
     setViewport({
       ...intialViewport,
@@ -62,20 +64,34 @@ const Index: FC = () => {
     });
   }, []);
 
-  const fitMapToBounds = (bounds: [[number, number], [number, number]]): void => {
+  const fitMapToBounds = (bounds: [[number, number], [number, number]], padding = 0): void => {
     const { longitude, latitude, zoom } = new WebMercatorViewport({
       ...viewport,
       width: window.innerWidth,
       height: window.innerHeight,
-    }).fitBounds(bounds);
+    }).fitBounds(bounds, {
+      padding,
+    });
     setViewport({
       ...viewport,
       longitude,
       latitude,
       zoom,
-      transitionDuration: 500,
+      transitionDuration: 200,
       transitionInterpolator: new FlyToInterpolator(),
     });
+  };
+
+  const fitMapToPostcodes = (postalCodes: Array<Postcode>): void => {
+    const lats = postalCodes.map((postcode) => postcode.lat);
+    const lons = postalCodes.map((postcode) => postcode.lon);
+    fitMapToBounds(
+      [
+        [Math.max(...lons), Math.max(...lats)],
+        [Math.min(...lons), Math.min(...lats)],
+      ],
+      window.innerWidth < 600 ? 50 : 200,
+    );
   };
 
   const getIsochrone = async (postcode: Postcode, drivingTime: number): Promise<Isochrone> => {
@@ -105,6 +121,8 @@ const Index: FC = () => {
 
   const calculate = async (drivingTime: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
+    cancelInitialPan.current = true;
+    fitMapToPostcodes(postalCodes);
     const promises: Array<Promise<Isochrone>> = [];
 
     postalCodes.forEach((x) => {
@@ -157,7 +175,9 @@ const Index: FC = () => {
         mapboxApiAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/light-v10"
         onLoad={() => {
-          fitMapToBounds(sgBbox);
+          if (!cancelInitialPan.current) {
+            fitMapToBounds(sgBbox);
+          }
         }}
         onClick={() => {
           if (hoveredPostcode) {
