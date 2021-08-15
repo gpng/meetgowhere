@@ -122,24 +122,30 @@ const Index: FC = () => {
       },
     });
 
-    const validGeojsons = res.filter((x) => x.geojson).map((x) => x.geojson);
-    let intersection = (validGeojsons as Array<FeatureCollection>)[0].features[0] as Feature<
-      Polygon | MultiPolygon
-    >;
-    for (let i = 1; i < validGeojsons.length; i += 1) {
-      const newIntersection = intersect(
-        intersection,
-        validGeojsons[i]?.features[0] as Feature<Polygon>,
-      );
-      if (!newIntersection) {
-        console.log('no intersection');
-        setOverlap(undefined);
-        setIsLoading.off();
-        return;
+    if (res.length > 1) {
+      const validGeojsons = res.filter((x) => x.geojson).map((x) => x.geojson);
+      let intersection = (validGeojsons as Array<FeatureCollection>)[0].features[0] as Feature<
+        Polygon | MultiPolygon
+      >;
+      for (let i = 1; i < validGeojsons.length; i += 1) {
+        const newIntersection = intersect(
+          intersection,
+          validGeojsons[i]?.features[0] as Feature<Polygon>,
+        );
+        if (!newIntersection) {
+          console.log('no intersection');
+          setOverlap(undefined);
+          setIsLoading.off();
+          return;
+        }
+        intersection = newIntersection;
       }
-      intersection = newIntersection;
+      setOverlap(intersection);
+      setHoveredPostcode(undefined);
+    } else {
+      setOverlap(undefined);
+      setHoveredPostcode(postalCodes[0].code);
     }
-    setOverlap(intersection);
     setIsLoading.off();
   };
 

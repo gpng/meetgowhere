@@ -99,7 +99,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         });
       }
 
-      if (validPostalCodes.length >= 2) {
+      if (validPostalCodes.length >= 1) {
         calculate(newDrivingTime || 10, validPostalCodes);
       }
     };
@@ -199,7 +199,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       </FormControl>
       <Box>
         <Button
-          disabled={isCalculating || postcodes.length < 2}
+          disabled={isCalculating || postcodes.length < 1}
           onClick={() => calculate(drivingTime, postcodes)}
         >
           Calculate
