@@ -27,17 +27,18 @@ import { searchPostcode } from 'actions/onemap';
 interface Props {
   postcodes: Array<Postcode>;
   setPostcodes: (postcodes: Array<Postcode>) => void;
-  calculate: (drivingTime: number, postcodes: Array<Postcode>) => void;
+  calculate: (travelTime: number, postcodes: Array<Postcode>) => void;
   isCalculating: boolean;
 }
 
-const DRIVING_TIMES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+const TRAVEL_TIMES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
+const DEFAULT_TRAVEL_TIME = 30;
 
 const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculating }) => {
   const { isReady, query } = useRouter();
 
   const [code, setCode] = useState('');
-  const [drivingTime, setDrivingTime] = useState(10);
+  const [travelTime, setTravelTime] = useState(DEFAULT_TRAVEL_TIME);
   const [isInvalid, setIsInvalid] = useBoolean();
   const [isLoading, setIsLoading] = useBoolean();
   const [type, setType] = useState(TravelType.Transit);
@@ -49,25 +50,25 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
   useEffect(() => {
     const checkQueries = async (
       postalCodesQuery?: string,
-      drivingTimeQuery?: string,
+      travelTimeQuery?: string,
     ): Promise<void> => {
       const newQuery: Record<string, string | undefined> = {};
-      let newDrivingTime: number | null = null;
+      let newTravelTime: number | null = null;
       const validPostalCodes: Array<Postcode> = [];
 
       let replaceQuery = false;
-      if (drivingTimeQuery) {
-        newQuery.drivingTime = drivingTimeQuery;
+      if (travelTimeQuery) {
+        newQuery.travelTime = travelTimeQuery;
         try {
-          newDrivingTime = parseInt(drivingTimeQuery, 10);
-          if (!DRIVING_TIMES.includes(newDrivingTime)) {
-            delete newQuery.drivingTime;
+          newTravelTime = parseInt(travelTimeQuery, 10);
+          if (!TRAVEL_TIMES.includes(newTravelTime)) {
+            delete newQuery.travelTime;
             replaceQuery = true;
           } else {
-            setDrivingTime(newDrivingTime);
+            setTravelTime(newTravelTime);
           }
         } catch (e) {
-          delete newQuery.drivingTime;
+          delete newQuery.travelTime;
           replaceQuery = true;
         }
       }
@@ -107,7 +108,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
       }
 
       if (validPostalCodes.length >= 1) {
-        calculate(newDrivingTime || 10, validPostalCodes);
+        calculate(newTravelTime || DEFAULT_TRAVEL_TIME, validPostalCodes);
       }
     };
 
@@ -116,7 +117,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
 
       checkQueries(
         query['postalCodes'] as string | undefined,
-        query['drivingTime'] as string | undefined,
+        query['travelTime'] as string | undefined,
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,13 +212,13 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
             </Tag>
           ))}
         </Flex>
-        <FormControl id="drivingTime">
+        <FormControl id="travelTime">
           <FormLabel>Travel time (minutes)</FormLabel>
           <Select
-            onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
-            value={drivingTime}
+            onChange={(ev) => setTravelTime(parseInt(ev.target.value, 10))}
+            value={travelTime}
           >
-            {DRIVING_TIMES.map((x) => (
+            {TRAVEL_TIMES.map((x) => (
               <option key={x} value={x}>
                 {x}
               </option>
@@ -227,7 +228,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         <Box>
           <Button
             disabled={isCalculating || postcodes.length < 1}
-            onClick={() => calculate(drivingTime, postcodes)}
+            onClick={() => calculate(travelTime, postcodes)}
           >
             Calculate
           </Button>
