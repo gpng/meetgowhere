@@ -83,7 +83,7 @@ const About: FC = () => {
               >
                 OneMap Search API
               </Link>{' '}
-              is used to verify the postal codes.
+              to verify the postal codes.
               <br />
               <br />
               <Link
@@ -93,13 +93,13 @@ const About: FC = () => {
               >
                 Mapbox Isochrone API
               </Link>{' '}
-              is used to generate the travel area for driving.
+              to generate the travel area for driving.
               <br />
               <br />
               <Link href="https://www.opentripplanner.org/" isExternal textDecor="underline">
                 OpenTripPlanner
               </Link>{' '}
-              is used to generate the travel area for public transport.
+              to generate the travel area for public transport.
               <br />
               <br />
               The intersection of each isochrone polygon is calculated to generate the overlapping
