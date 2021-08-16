@@ -1,4 +1,5 @@
 import React, { FC } from 'react';
+import Image from 'next/image';
 import {
   Box,
   Button,
@@ -13,6 +14,7 @@ import {
   useDisclosure,
   Heading,
   Link,
+  Flex,
 } from '@chakra-ui/react';
 
 const About: FC = () => {
@@ -29,7 +31,7 @@ const About: FC = () => {
         <ModalContent>
           <ModalHeader>What does this site do?</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
+          <ModalBody pb={8}>
             <Text>
               Add multiple postal codes and select a transport mode for each one, select the max
               travel time, and it will show you which is the best area to meet up.
@@ -143,7 +145,12 @@ const About: FC = () => {
             </Text>
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onClose}>Close</Button>
+            <Flex justifyContent="space-between" w="full">
+              <Link href="https://www.buymeacoffee.com/gpng" isExternal>
+                <Image src="/coffee.webp" alt="Buy Me A Coffee" width={145} height={40} />
+              </Link>
+              <Button onClick={onClose}>Close</Button>
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Modal>
