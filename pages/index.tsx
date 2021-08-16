@@ -38,7 +38,7 @@ const textLayerStyle: LayerProps = {
     'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
     'text-justify': 'auto',
     'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 14, 12],
-    'symbol-avoid-edges': false,
+    'text-ignore-placement': true,
     'text-allow-overlap': true,
   },
   paint: {},
