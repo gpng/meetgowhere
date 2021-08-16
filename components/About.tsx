@@ -147,7 +147,7 @@ const About: FC = () => {
           <ModalFooter>
             <Flex justifyContent="space-between" w="full">
               <Link href="https://www.buymeacoffee.com/gpng" isExternal>
-                <Image src="/coffee.webp" alt="Buy Me A Coffee" width={145} height={40} />
+                <Image src="/coffee.png" alt="Buy Me A Coffee" width={145} height={40} />
               </Link>
               <Button onClick={onClose}>Close</Button>
             </Flex>
