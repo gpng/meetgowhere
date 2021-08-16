@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Postcode, TravelType } from 'models/postcode';
-import { to } from 'utils';
+import { to } from 'utils/index';
 
 export const searchPostcode = async (code: string, type: TravelType): Promise<Postcode | null> => {
   const [err, res] = await to(
