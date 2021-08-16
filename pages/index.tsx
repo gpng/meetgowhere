@@ -4,13 +4,19 @@ import ReactMapGl, {
   FlyToInterpolator,
   TransitionInterpolator,
   Marker,
+  Source,
+  Layer,
+  LayerProps,
 } from 'react-map-gl';
 import axios from 'axios';
 import { intersect } from '@turf/turf';
 import { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import Router from 'next/router';
+import DeckGl from '@deck.gl/react';
+import { ViewStateProps } from '@deck.gl/core/lib/deck';
+import { IconLayer } from '@deck.gl/layers';
 
-import { Box, useBoolean, Text, Flex } from '@chakra-ui/react';
+import { Box, useBoolean } from '@chakra-ui/react';
 
 import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
@@ -19,10 +25,24 @@ import Isochrones from 'components/Isochrones';
 import { Postcode, TravelType } from 'models/postcode';
 import { Isochrone } from 'models/isochrone';
 
-import { to } from 'utils';
+import { to } from 'utils/index';
 
 import { MAPBOX_TOKEN, OTP_HOST } from 'constants/index';
-import { MRT_COLORS, MRT_DATA } from 'constants/data';
+import { MRT_DATA, STATION_SPRITES_MAPPING } from 'constants/data';
+
+const textLayerStyle: LayerProps = {
+  type: 'symbol',
+  minzoom: 12,
+  layout: {
+    'text-field': ['get', 'name'],
+    'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+    'text-justify': 'auto',
+    'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 14, 12],
+    'symbol-avoid-edges': false,
+    'text-allow-overlap': true,
+  },
+  paint: {},
+};
 
 interface Viewport {
   width: number;
@@ -203,6 +223,7 @@ const Index: FC = () => {
     setIsLoading.off();
   };
 
+  console.log('zoom: ', viewport.zoom);
   return (
     <Box w="100vw" h="100vh" overflow="hidden" pos="relative">
       <ReactMapGl
@@ -223,7 +244,26 @@ const Index: FC = () => {
       >
         <Isochrones isochrones={isochrones} hoveredPostcode={hoveredPostcode} />
         {overlap && <Overlap geojson={overlap} />}
-        {viewport.zoom > 11 &&
+        <Source type="geojson" data={MRT_DATA}>
+          <Layer {...textLayerStyle} />
+        </Source>
+        <DeckGl
+          viewState={viewport as ViewStateProps}
+          layers={[
+            new IconLayer({
+              id: 'station-layer',
+              data: MRT_DATA.features,
+              iconAtlas: '/stations.png',
+              iconMapping: STATION_SPRITES_MAPPING,
+              getIcon: (d: Feature) => d?.properties?.station_codes,
+              getPosition: (d: Feature) => (d?.geometry as Point).coordinates as [number, number],
+              sizeScale: viewport.zoom < 11 ? 0 : viewport.zoom,
+              getSize: 1,
+              getPixelOffset: [0, -10],
+            }),
+          ]}
+        />
+        {/* {viewport.zoom > 11 &&
           MRT_DATA.features.map((feature) => (
             <Marker
               key={feature.properties?.name}
@@ -251,7 +291,7 @@ const Index: FC = () => {
                 <Text fontSize={viewport.zoom < 13 ? '8px' : 'xs'}>{feature.properties?.name}</Text>
               </Flex>
             </Marker>
-          ))}
+          ))} */}
         {postcodes.map((postcode) => (
           <Marker key={postcode.code} longitude={postcode.lon} latitude={postcode.lat}>
             <Box
