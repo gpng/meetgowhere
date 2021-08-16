@@ -34,7 +34,7 @@ const About: FC = () => {
               Add multiple postal codes and select a transport mode for each one, select the max
               travel time, and it will show you which is the best area to meet up.
             </Text>
-            <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
+            <Heading size="sm" mt={4} mb={4} fontWeight="semibold">
               A bit more details?
             </Heading>
             <Text>
@@ -57,7 +57,7 @@ const About: FC = () => {
               </Text>{' '}
               highlight, then at least 1 postal code can not meet the others in the time specified.
             </Text>
-            <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
+            <Heading size="sm" mt={4} mb={4} fontWeight="semibold">
               Why?
             </Heading>
             <Text>
@@ -65,14 +65,14 @@ const About: FC = () => {
               could be a webapp idea, so I thought it was interesting and fun to do and took out a
               few hours to make it.
             </Text>
-            <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
+            <Heading size="sm" mt={4} mb={4} fontWeight="semibold">
               Is it accurate?
             </Heading>
             <Text>
               Probably not. Public transport data is 2~3 years old. Driving time also seems to be
-              very optimistic
+              quite optimistic
             </Text>
-            <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
+            <Heading size="sm" mt={4} mb={4} fontWeight="semibold">
               How?
             </Heading>
             <Text>
@@ -85,6 +85,7 @@ const About: FC = () => {
               </Link>{' '}
               is used to verify the postal codes.
               <br />
+              <br />
               <Link
                 href="https://docs.mapbox.com/api/navigation/isochrone/"
                 isExternal
@@ -94,10 +95,12 @@ const About: FC = () => {
               </Link>{' '}
               is used to generate the travel area for driving.
               <br />
+              <br />
               <Link href="https://www.opentripplanner.org/" isExternal textDecor="underline">
                 OpenTripPlanner
               </Link>{' '}
               is used to generate the travel area for public transport.
+              <br />
               <br />
               The intersection of each isochrone polygon is calculated to generate the overlapping
               polygon.
@@ -119,14 +122,24 @@ const About: FC = () => {
                 GitHub
               </Link>
             </Text>{' '}
-            <Heading size="sm" mt={4} mb={2} fontWeight="semibold">
+            <Heading size="sm" mt={4} mb={4} fontWeight="semibold">
               Credits
             </Heading>
             <Text>
               <Link href="https://github.com/yinshanyang" isExternal textDecor="underline">
                 yinshanyang
               </Link>{' '}
-              for his prior work with isochrone Singapore, OpenTripPlanner setup and SG GTFS data
+              for his prior work with isochrone Singapore, OpenTripPlanner setup and SG GTFS data.
+              <br />
+              <br />
+              <Link
+                href="https://github.com/cheeaun/railrouter-sg"
+                isExternal
+                textDecor="underline"
+              >
+                cheeaun RailRouter SG
+              </Link>{' '}
+              where the MRT station data and sprites are from.
             </Text>
           </ModalBody>
           <ModalFooter>
