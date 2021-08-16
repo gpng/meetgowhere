@@ -7,10 +7,10 @@ import ReactMapGl, {
 } from 'react-map-gl';
 import axios from 'axios';
 import { intersect } from '@turf/turf';
-import { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
+import { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import Router from 'next/router';
 
-import { Box, useBoolean } from '@chakra-ui/react';
+import { Box, useBoolean, Text, Flex } from '@chakra-ui/react';
 
 import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
@@ -22,6 +22,7 @@ import { Isochrone } from 'models/isochrone';
 import { to } from 'utils';
 
 import { MAPBOX_TOKEN, OTP_HOST } from 'constants/index';
+import { MRT_COLORS, MRT_DATA } from 'constants/data';
 
 interface Viewport {
   width: number;
@@ -187,7 +188,6 @@ const Index: FC = () => {
           validGeojsons[i]?.features[0] as Feature<Polygon>,
         );
         if (!newIntersection) {
-          console.log('no intersection');
           setOverlap(undefined);
           setIsLoading.off();
           return;
@@ -223,6 +223,35 @@ const Index: FC = () => {
       >
         <Isochrones isochrones={isochrones} hoveredPostcode={hoveredPostcode} />
         {overlap && <Overlap geojson={overlap} />}
+        {viewport.zoom > 11 &&
+          MRT_DATA.features.map((feature) => (
+            <Marker
+              key={feature.properties?.name}
+              longitude={(feature.geometry as Point).coordinates[0]}
+              latitude={(feature.geometry as Point).coordinates[1]}
+            >
+              <Flex flexDir="column" alignItems="center" transform="translate(-50%, -50%)">
+                <Flex
+                  h={2}
+                  borderRadius={4}
+                  cursor="pointer"
+                  pointerEvents="none"
+                  overflow="hidden"
+                >
+                  {feature.properties?.lines.map((line: string) => (
+                    <Box
+                      key={line}
+                      h={2}
+                      w={2}
+                      display="inline-block"
+                      bg={MRT_COLORS[line.slice(0, 2)]}
+                    />
+                  ))}
+                </Flex>
+                <Text fontSize={viewport.zoom < 13 ? '8px' : 'xs'}>{feature.properties?.name}</Text>
+              </Flex>
+            </Marker>
+          ))}
         {postcodes.map((postcode) => (
           <Marker key={postcode.code} longitude={postcode.lon} latitude={postcode.lat}>
             <Box
