@@ -16,12 +16,12 @@ import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
 import Isochrones from 'components/Isochrones';
 
-import { Postcode } from 'models/postcode';
+import { Postcode, TravelType } from 'models/postcode';
 import { Isochrone } from 'models/isochrone';
 
 import { to } from 'utils';
 
-import { MAPBOX_TOKEN } from 'constants/index';
+import { MAPBOX_TOKEN, OTP_HOST } from 'constants/index';
 
 interface Viewport {
   width: number;
@@ -94,7 +94,10 @@ const Index: FC = () => {
     );
   };
 
-  const getIsochrone = async (postcode: Postcode, drivingTime: number): Promise<Isochrone> => {
+  const getDrivingIsochrone = async (
+    postcode: Postcode,
+    drivingTime: number,
+  ): Promise<Isochrone> => {
     const isochrone: Isochrone = {
       postcode,
       geojson: null,
@@ -119,14 +122,47 @@ const Index: FC = () => {
     return isochrone;
   };
 
+  const getTransitIsochrone = async (
+    postcode: Postcode,
+    travelTime: number,
+  ): Promise<Isochrone> => {
+    const isochrone: Isochrone = {
+      postcode,
+      geojson: null,
+    };
+    const [err, res] = await to(
+      axios.get(`${OTP_HOST}/otp/routers/default/isochrone`, {
+        params: {
+          mode: 'TRANSIT,WALK',
+          time: '10:00am',
+          date: '08-16-2021',
+          cutoffSec: travelTime * 60,
+          fromPlace: `${postcode.lat},${postcode.lon}`,
+        },
+      }),
+    );
+    if (err || !res?.data) {
+      console.error(err);
+      return isochrone;
+    }
+    isochrone.geojson = res.data as FeatureCollection;
+    return isochrone;
+  };
+
   const calculate = async (drivingTime: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
-    cancelInitialPan.current = true;
-    fitMapToPostcodes(postalCodes);
+    if (postalCodes.length > 1) {
+      cancelInitialPan.current = true;
+      fitMapToPostcodes(postalCodes);
+    }
     const promises: Array<Promise<Isochrone>> = [];
 
-    postalCodes.forEach((x) => {
-      promises.push(getIsochrone(x, drivingTime));
+    postalCodes.forEach((postcode) => {
+      promises.push(
+        postcode.type === TravelType.Drive
+          ? getDrivingIsochrone(postcode, drivingTime)
+          : getTransitIsochrone(postcode, drivingTime),
+      );
     });
 
     const res = await Promise.all(promises);
@@ -136,7 +172,7 @@ const Index: FC = () => {
       pathname: '/',
       query: {
         drivingTime,
-        postalCodes: postalCodes.map((postcode) => postcode.code).join(','),
+        postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
       },
     });
 

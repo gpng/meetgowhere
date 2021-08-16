@@ -20,7 +20,7 @@ import Router, { useRouter } from 'next/router';
 
 import About from './About';
 
-import { Postcode } from 'models/postcode';
+import { Postcode, TravelType } from 'models/postcode';
 
 import { searchPostcode } from 'actions/onemap';
 
@@ -40,6 +40,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
   const [drivingTime, setDrivingTime] = useState(10);
   const [isInvalid, setIsInvalid] = useBoolean();
   const [isLoading, setIsLoading] = useBoolean();
+  const [type, setType] = useState(TravelType.Transit);
   const { isOpen: isHidden, onToggle } = useDisclosure();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,8 +77,8 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         newQuery.postalCodes = postalCodesQuery;
         const split = postalCodesQuery.split(',');
         for (let i = 0; i < split.length; i += 1) {
-          const postalCode = split[i];
-          const postalCodeRes = await checkPostcode(postalCode, []);
+          const [postalCode, travelType] = split[i].split(':');
+          const postalCodeRes = await checkPostcode(postalCode, [], travelType as TravelType);
           if (postalCodeRes) {
             validPostalCodes.push(postalCodeRes);
           } else {
@@ -90,7 +91,9 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
           if (!validPostalCodes.length) {
             delete newQuery.postalCodes;
           } else {
-            newQuery.postalCodes = validPostalCodes.map((postcode) => postcode.code).join(',');
+            newQuery.postalCodes = validPostalCodes
+              .map((postcode) => `${postcode.code}:${postcode.type}`)
+              .join(',');
           }
         }
         setPostcodes(validPostalCodes);
@@ -120,9 +123,17 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
   }, [isReady, query]);
 
   const checkPostcode = useCallback(
-    async (postalCode: string, currentPostcodes: Array<Postcode>): Promise<Postcode | null> => {
+    async (
+      postalCode: string,
+      currentPostcodes: Array<Postcode>,
+      travelType: TravelType,
+    ): Promise<Postcode | null> => {
+      if (!Object.values(TravelType).includes(travelType)) {
+        return null;
+      }
+
       setIsLoading.on();
-      const res = await searchPostcode(postalCode);
+      const res = await searchPostcode(postalCode, travelType);
       setIsLoading.off();
       if (!res) {
         setIsInvalid.on();
@@ -162,22 +173,29 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         <form
           onSubmit={(ev) => {
             ev.preventDefault();
-            checkPostcode(code, postcodes);
+            checkPostcode(code, postcodes, type);
           }}
+          style={{ width: '100%' }}
         >
+          <Input
+            value={code}
+            onChange={(ev) => {
+              setCode(ev.target.value);
+              if (isInvalid && ev.target.value !== code) {
+                setIsInvalid.off();
+              }
+            }}
+            isInvalid={isInvalid}
+            ref={inputRef}
+            placeholder="Postal code"
+            w="full"
+            mb={2}
+          />
           <HStack>
-            <Input
-              value={code}
-              onChange={(ev) => {
-                setCode(ev.target.value);
-                if (isInvalid && ev.target.value !== code) {
-                  setIsInvalid.off();
-                }
-              }}
-              isInvalid={isInvalid}
-              ref={inputRef}
-              placeholder="Postal code"
-            />
+            <Select onChange={(ev) => setType(ev.target.value as TravelType)} value={type}>
+              <option value={TravelType.Transit}>Public Transport</option>
+              <option value={TravelType.Drive}>Car</option>
+            </Select>
             <Button type="submit" disabled={isLoading || !code || code === ''}>
               Add
             </Button>
@@ -186,13 +204,15 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         <Flex flexWrap="wrap">
           {postcodes.map((postcode, i) => (
             <Tag key={postcode.code} mb={2} mr={2}>
-              <TagLabel>{postcode.code}</TagLabel>
+              <TagLabel>
+                {postcode.code}:{postcode.type}
+              </TagLabel>
               <TagCloseButton onClick={() => onClickPostcode(i)} />
             </Tag>
           ))}
         </Flex>
         <FormControl id="drivingTime">
-          <FormLabel>Driving time (minutes)</FormLabel>
+          <FormLabel>Travel time (minutes)</FormLabel>
           <Select
             onChange={(ev) => setDrivingTime(parseInt(ev.target.value, 10))}
             value={drivingTime}
@@ -213,7 +233,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
           </Button>
         </Box>
         <Text fontSize="xs">
-          The areas which are accessible from all postal codes in the chosen driving time is
+          The areas which are accessible from all postal codes in the chosen travel time is
           highlighted in{' '}
           <Text as="span" color="green">
             green
