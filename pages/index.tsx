@@ -168,6 +168,8 @@ const Index: FC = () => {
       return isochrone;
     }
     isochrone.geojson = res.data as FeatureCollection;
+    // restricting every point to 3dp due to an issue with calculating the intersectoins
+    // https://github.com/mfogel/polygon-clipping/issues/91
     isochrone.geojson.features.forEach((feature, featureIndex) => {
       const polygons = (feature as Feature<MultiPolygon>).geometry.coordinates;
       polygons.forEach((polygon, polygonIndex) => {
