@@ -67,6 +67,8 @@ const intialViewport: Viewport = {
   zoom: 9,
 };
 
+const roundTo3dp = (num: number) => Math.round((num + Number.EPSILON) * 1000) / 1000;
+
 const Index: FC = () => {
   const [viewport, setViewport] = useState(intialViewport);
   const [postcodes, setPostcodes] = useState<Array<Postcode>>([]);
@@ -166,6 +168,19 @@ const Index: FC = () => {
       return isochrone;
     }
     isochrone.geojson = res.data as FeatureCollection;
+    isochrone.geojson.features.forEach((feature, featureIndex) => {
+      const polygons = (feature as Feature<MultiPolygon>).geometry.coordinates;
+      polygons.forEach((polygon, polygonIndex) => {
+        polygon.forEach((coords, coordsIndex) => {
+          ((isochrone.geojson as FeatureCollection).features as Array<Feature<MultiPolygon>>)[
+            featureIndex
+          ].geometry.coordinates[polygonIndex][coordsIndex] = coords.map((coord) => [
+            roundTo3dp(coord[0]),
+            roundTo3dp(coord[1]),
+          ]);
+        });
+      });
+    });
     return isochrone;
   };
 
@@ -244,12 +259,6 @@ const Index: FC = () => {
       const fn =
         time <= 0 ? searchIntersections(postalCodes) : findIntersections(time, postalCodes);
       const [intersectionTime, newIsochrones, intersection] = await fn;
-      console.log(
-        'intersectionTime, newIsochrones, intersection: ',
-        intersectionTime,
-        newIsochrones,
-        intersection,
-      );
       const validIsochrones = newIsochrones.filter(
         (iso) => !iso.geojson?.features.some((feat) => !feat.geometry),
       );
