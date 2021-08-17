@@ -9,7 +9,7 @@ import ReactMapGl, {
   LayerProps,
 } from 'react-map-gl';
 import axios from 'axios';
-import { intersect } from '@turf/turf';
+import { intersect, bbox } from '@turf/turf';
 import { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import Router from 'next/router';
 import DeckGl from '@deck.gl/react';
@@ -172,10 +172,7 @@ const Index: FC = () => {
 
   const calculate = async (travelTime: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
-    if (postalCodes.length > 1) {
-      cancelInitialPan.current = true;
-      fitMapToPostcodes(postalCodes);
-    }
+
     const promises: Array<Promise<Isochrone>> = [];
 
     postalCodes.forEach((postcode) => {
@@ -210,20 +207,34 @@ const Index: FC = () => {
         if (!newIntersection) {
           setOverlap(undefined);
           setIsLoading.off();
+          fitMapToPostcodes(postcodes);
+          cancelInitialPan.current = true;
           return;
         }
         intersection = newIntersection;
       }
       setOverlap(intersection);
       setHoveredPostcode(undefined);
+      const bounds = bbox(intersection);
+      cancelInitialPan.current = true;
+      fitMapToBounds([
+        [bounds[0], bounds[1]],
+        [bounds[2], bounds[3]],
+      ]);
     } else {
-      setOverlap(undefined);
+      if (res[0].geojson) {
+        const bounds = bbox(res[0].geojson);
+        cancelInitialPan.current = true;
+        fitMapToBounds([
+          [bounds[0], bounds[1]],
+          [bounds[2], bounds[3]],
+        ]);
+      }
       setHoveredPostcode(postalCodes[0].code);
     }
     setIsLoading.off();
   };
 
-  console.log('zoom: ', viewport.zoom);
   return (
     <Box w="100vw" h="100vh" overflow="hidden" pos="relative">
       <ReactMapGl
