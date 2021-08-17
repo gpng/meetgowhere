@@ -197,7 +197,11 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
               <option value={TravelType.Transit}>Public Transport</option>
               <option value={TravelType.Drive}>Car</option>
             </Select>
-            <Button type="submit" disabled={isLoading || !code || code === ''}>
+            <Button
+              type="submit"
+              disabled={isLoading || !code || code === ''}
+              isLoading={isLoading}
+            >
               Add
             </Button>
           </HStack>
@@ -227,6 +231,7 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
         </FormControl>
         <Box>
           <Button
+            isLoading={isCalculating}
             disabled={isCalculating || postcodes.length < 1}
             onClick={() => calculate(travelTime, postcodes)}
           >

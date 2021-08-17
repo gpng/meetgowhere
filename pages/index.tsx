@@ -274,35 +274,6 @@ const Index: FC = () => {
             }),
           ]}
         />
-        {/* {viewport.zoom > 11 &&
-          MRT_DATA.features.map((feature) => (
-            <Marker
-              key={feature.properties?.name}
-              longitude={(feature.geometry as Point).coordinates[0]}
-              latitude={(feature.geometry as Point).coordinates[1]}
-            >
-              <Flex flexDir="column" alignItems="center" transform="translate(-50%, -50%)">
-                <Flex
-                  h={2}
-                  borderRadius={4}
-                  cursor="pointer"
-                  pointerEvents="none"
-                  overflow="hidden"
-                >
-                  {feature.properties?.lines.map((line: string) => (
-                    <Box
-                      key={line}
-                      h={2}
-                      w={2}
-                      display="inline-block"
-                      bg={MRT_COLORS[line.slice(0, 2)]}
-                    />
-                  ))}
-                </Flex>
-                <Text fontSize={viewport.zoom < 13 ? '8px' : 'xs'}>{feature.properties?.name}</Text>
-              </Flex>
-            </Marker>
-          ))} */}
         {postcodes.map((postcode) => (
           <Marker key={postcode.code} longitude={postcode.lon} latitude={postcode.lat}>
             <Box
