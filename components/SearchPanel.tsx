@@ -18,9 +18,9 @@ import {
 } from '@chakra-ui/react';
 import Router, { useRouter } from 'next/router';
 
-import About from './About';
+import About from 'components/About';
 
-import { Postcode, TravelType } from 'models/postcode';
+import { DEFAULT_TRAVEL_TIME, Postcode, TravelType, TRAVEL_TIMES } from 'models/postcode';
 
 import { searchPostcode } from 'actions/onemap';
 
@@ -29,16 +29,21 @@ interface Props {
   setPostcodes: (postcodes: Array<Postcode>) => void;
   calculate: (travelTime: number, postcodes: Array<Postcode>) => void;
   isCalculating: boolean;
+  travelTime: number;
+  setTravelTime: (travelTime: number) => void;
 }
 
-const TRAVEL_TIMES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
-const DEFAULT_TRAVEL_TIME = 30;
-
-const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculating }) => {
+const SearchPanel: FC<Props> = ({
+  postcodes,
+  setPostcodes,
+  calculate,
+  isCalculating,
+  travelTime,
+  setTravelTime,
+}) => {
   const { isReady, query } = useRouter();
 
   const [code, setCode] = useState('');
-  const [travelTime, setTravelTime] = useState(DEFAULT_TRAVEL_TIME);
   const [isInvalid, setIsInvalid] = useBoolean();
   const [isLoading, setIsLoading] = useBoolean();
   const [type, setType] = useState(TravelType.Transit);
@@ -236,6 +241,15 @@ const SearchPanel: FC<Props> = ({ postcodes, setPostcodes, calculate, isCalculat
             onClick={() => calculate(travelTime, postcodes)}
           >
             Calculate
+          </Button>
+        </Box>
+        <Box>
+          <Button
+            isLoading={isCalculating}
+            disabled={isCalculating || postcodes.length < 1}
+            onClick={() => calculate(0, postcodes)}
+          >
+            Auto-Calculate Travel Time
           </Button>
         </Box>
         <Text fontSize="xs">

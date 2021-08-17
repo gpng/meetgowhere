@@ -22,7 +22,7 @@ import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
 import Isochrones from 'components/Isochrones';
 
-import { Postcode, TravelType } from 'models/postcode';
+import { Postcode, TravelType, TRAVEL_TIMES, DEFAULT_TRAVEL_TIME } from 'models/postcode';
 import { Isochrone } from 'models/isochrone';
 
 import { to } from 'utils/index';
@@ -70,6 +70,7 @@ const intialViewport: Viewport = {
 const Index: FC = () => {
   const [viewport, setViewport] = useState(intialViewport);
   const [postcodes, setPostcodes] = useState<Array<Postcode>>([]);
+  const [travelTime, setTravelTime] = useState(DEFAULT_TRAVEL_TIME);
   const [isochrones, setIsochrones] = useState<Array<Isochrone>>([]);
   const [hoveredPostcode, setHoveredPostcode] = useState<string>();
   const [overlap, setOverlap] = useState<Feature<Polygon | MultiPolygon>>();
@@ -143,10 +144,7 @@ const Index: FC = () => {
     return isochrone;
   };
 
-  const getTransitIsochrone = async (
-    postcode: Postcode,
-    travelTime: number,
-  ): Promise<Isochrone> => {
+  const getTransitIsochrone = async (postcode: Postcode, time: number): Promise<Isochrone> => {
     const isochrone: Isochrone = {
       postcode,
       geojson: null,
@@ -157,7 +155,7 @@ const Index: FC = () => {
           mode: 'TRANSIT,WALK',
           time: '10:00am',
           date: '08-16-2021',
-          cutoffSec: travelTime * 60,
+          cutoffSec: time * 60,
           fromPlace: `${postcode.lat},${postcode.lon}`,
         },
       }),
@@ -170,68 +168,119 @@ const Index: FC = () => {
     return isochrone;
   };
 
-  const calculate = async (travelTime: number, postalCodes: Array<Postcode>): Promise<void> => {
-    setIsLoading.on();
-
+  const findIntersections = async (
+    time: number,
+    postalCodes: Array<Postcode>,
+  ): Promise<[number, Array<Isochrone>, Feature<Polygon | MultiPolygon> | null]> => {
     const promises: Array<Promise<Isochrone>> = [];
+    let newIsochrones: Array<Isochrone> = [];
 
     postalCodes.forEach((postcode) => {
       promises.push(
         postcode.type === TravelType.Drive
-          ? getDrivingIsochrone(postcode, travelTime)
-          : getTransitIsochrone(postcode, travelTime),
+          ? getDrivingIsochrone(postcode, time)
+          : getTransitIsochrone(postcode, time),
       );
     });
 
-    const res = await Promise.all(promises);
-    setIsochrones(res);
+    newIsochrones = await Promise.all(promises);
 
-    Router.replace({
-      pathname: '/',
-      query: {
-        travelTime,
-        postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
-      },
-    });
-
-    if (res.length > 1) {
-      const validGeojsons = res.filter((x) => x.geojson).map((x) => x.geojson);
+    if (newIsochrones.length > 1) {
+      const validGeojsons = newIsochrones.map((x) => x.geojson);
       let intersection = (validGeojsons as Array<FeatureCollection>)[0].features[0] as Feature<
         Polygon | MultiPolygon
       >;
+      if (!intersection.geometry) {
+        return [time, newIsochrones, null];
+      }
       for (let i = 1; i < validGeojsons.length; i += 1) {
+        if (!(validGeojsons[i]?.features[0] as Feature<Polygon>)?.geometry) {
+          return [time, newIsochrones, null];
+        }
         const newIntersection = intersect(
           intersection,
           validGeojsons[i]?.features[0] as Feature<Polygon>,
         );
         if (!newIntersection) {
-          setOverlap(undefined);
-          setIsLoading.off();
-          fitMapToPostcodes(postcodes);
-          cancelInitialPan.current = true;
-          return;
+          return [time, newIsochrones, null];
         }
         intersection = newIntersection;
       }
-      setOverlap(intersection);
-      setHoveredPostcode(undefined);
-      const bounds = bbox(intersection);
-      cancelInitialPan.current = true;
-      fitMapToBounds([
-        [bounds[0], bounds[1]],
-        [bounds[2], bounds[3]],
-      ]);
+      return [time, newIsochrones, intersection];
     } else {
-      if (res[0].geojson) {
-        const bounds = bbox(res[0].geojson);
-        cancelInitialPan.current = true;
+      return [time, newIsochrones, null];
+    }
+  };
+
+  const searchIntersections = async (
+    postalCodes: Array<Postcode>,
+  ): Promise<[number, Array<Isochrone>, Feature<Polygon | MultiPolygon> | null]> => {
+    let smallestIsochrones: Array<Isochrone> = [];
+    let smallestIntersection: Feature<Polygon | MultiPolygon> | null = null;
+    let maxIndex = TRAVEL_TIMES.length;
+    let minIndex = -1;
+    while (maxIndex - minIndex > 1) {
+      const index = Math.floor(minIndex + (maxIndex - minIndex) / 2);
+      const [, newIsochrones, intersection] = await findIntersections(
+        TRAVEL_TIMES[index],
+        postalCodes,
+      );
+      if (intersection) {
+        smallestIntersection = intersection;
+        smallestIsochrones = newIsochrones;
+        maxIndex = index;
+      } else {
+        minIndex = index;
+      }
+    }
+
+    return [TRAVEL_TIMES[maxIndex], smallestIsochrones, smallestIntersection];
+  };
+
+  const calculate = async (time: number, postalCodes: Array<Postcode>): Promise<void> => {
+    setIsLoading.on();
+
+    const fn = time <= 0 ? searchIntersections(postalCodes) : findIntersections(time, postalCodes);
+    const [intersectionTime, newIsochrones, intersection] = await fn;
+    const validIsochrones = newIsochrones.filter(
+      (iso) => !iso.geojson?.features.some((feat) => !feat.geometry),
+    );
+    setIsochrones(validIsochrones);
+    if (postalCodes.length > 1) {
+      if (intersection) {
+        setOverlap(intersection);
+        setHoveredPostcode(undefined);
+        const bounds = bbox(intersection);
+        fitMapToBounds([
+          [bounds[0], bounds[1]],
+          [bounds[2], bounds[3]],
+        ]);
+      } else {
+        setOverlap(undefined);
+        fitMapToPostcodes(postalCodes);
+      }
+    }
+    if (postalCodes.length === 1) {
+      setHoveredPostcode(postalCodes[0].code);
+      if (validIsochrones?.[0]?.geojson) {
+        const bounds = bbox(validIsochrones[0].geojson);
         fitMapToBounds([
           [bounds[0], bounds[1]],
           [bounds[2], bounds[3]],
         ]);
       }
-      setHoveredPostcode(postalCodes[0].code);
     }
+    if (time <= 0) {
+      setTravelTime(intersectionTime);
+    }
+    cancelInitialPan.current = true;
+    Router.replace({
+      pathname: '/',
+      query: {
+        travelTime: intersectionTime,
+        postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
+      },
+    });
     setIsLoading.off();
   };
 
@@ -300,6 +349,8 @@ const Index: FC = () => {
           setPostcodes={setPostcodes}
           calculate={calculate}
           isCalculating={isLoading}
+          travelTime={travelTime}
+          setTravelTime={setTravelTime}
         />
       </Box>
     </Box>
