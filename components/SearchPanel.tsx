@@ -246,7 +246,7 @@ const SearchPanel: FC<Props> = ({
         <Box>
           <Button
             isLoading={isCalculating}
-            disabled={isCalculating || postcodes.length < 1}
+            disabled={isCalculating || postcodes.length < 2}
             onClick={() => calculate(0, postcodes)}
           >
             Auto-Calculate Travel Time
