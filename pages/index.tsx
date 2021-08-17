@@ -170,7 +170,7 @@ const Index: FC = () => {
     return isochrone;
   };
 
-  const calculate = async (drivingTime: number, postalCodes: Array<Postcode>): Promise<void> => {
+  const calculate = async (travelTime: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
     if (postalCodes.length > 1) {
       cancelInitialPan.current = true;
@@ -181,8 +181,8 @@ const Index: FC = () => {
     postalCodes.forEach((postcode) => {
       promises.push(
         postcode.type === TravelType.Drive
-          ? getDrivingIsochrone(postcode, drivingTime)
-          : getTransitIsochrone(postcode, drivingTime),
+          ? getDrivingIsochrone(postcode, travelTime)
+          : getTransitIsochrone(postcode, travelTime),
       );
     });
 
@@ -192,7 +192,7 @@ const Index: FC = () => {
     Router.replace({
       pathname: '/',
       query: {
-        drivingTime,
+        travelTime,
         postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
       },
     });
