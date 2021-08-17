@@ -132,7 +132,7 @@ const Index: FC = () => {
         `https://api.mapbox.com/isochrone/v1/mapbox/driving/${postcode.lon},${postcode.lat}?`,
         {
           params: {
-            contours_minutes: drivingTime,
+            contours_minutes: Math.min(drivingTime, 60),
             polygons: true,
             access_token: MAPBOX_TOKEN,
           },
