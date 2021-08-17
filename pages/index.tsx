@@ -16,7 +16,7 @@ import DeckGl from '@deck.gl/react';
 import { ViewStateProps } from '@deck.gl/core/lib/deck';
 import { IconLayer } from '@deck.gl/layers';
 
-import { Box, useBoolean } from '@chakra-ui/react';
+import { Box, useBoolean, useToast } from '@chakra-ui/react';
 
 import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
@@ -77,6 +77,7 @@ const Index: FC = () => {
   const [isLoading, setIsLoading] = useBoolean();
 
   const cancelInitialPan = useRef(false);
+  const toast = useToast();
 
   useEffect(() => {
     setViewport({
@@ -239,48 +240,64 @@ const Index: FC = () => {
 
   const calculate = async (time: number, postalCodes: Array<Postcode>): Promise<void> => {
     setIsLoading.on();
-
-    const fn = time <= 0 ? searchIntersections(postalCodes) : findIntersections(time, postalCodes);
-    const [intersectionTime, newIsochrones, intersection] = await fn;
-    const validIsochrones = newIsochrones.filter(
-      (iso) => !iso.geojson?.features.some((feat) => !feat.geometry),
-    );
-    setIsochrones(validIsochrones);
-    if (postalCodes.length > 1) {
-      if (intersection) {
-        setOverlap(intersection);
-        setHoveredPostcode(undefined);
-        const bounds = bbox(intersection);
-        fitMapToBounds([
-          [bounds[0], bounds[1]],
-          [bounds[2], bounds[3]],
-        ]);
-      } else {
-        setOverlap(undefined);
-        fitMapToPostcodes(postalCodes);
+    try {
+      const fn =
+        time <= 0 ? searchIntersections(postalCodes) : findIntersections(time, postalCodes);
+      const [intersectionTime, newIsochrones, intersection] = await fn;
+      console.log(
+        'intersectionTime, newIsochrones, intersection: ',
+        intersectionTime,
+        newIsochrones,
+        intersection,
+      );
+      const validIsochrones = newIsochrones.filter(
+        (iso) => !iso.geojson?.features.some((feat) => !feat.geometry),
+      );
+      setIsochrones(validIsochrones);
+      if (postalCodes.length > 1) {
+        if (intersection) {
+          setOverlap(intersection);
+          setHoveredPostcode(undefined);
+          const bounds = bbox(intersection);
+          fitMapToBounds([
+            [bounds[0], bounds[1]],
+            [bounds[2], bounds[3]],
+          ]);
+        } else {
+          setOverlap(undefined);
+          fitMapToPostcodes(postalCodes);
+        }
       }
-    }
-    if (postalCodes.length === 1) {
-      setHoveredPostcode(postalCodes[0].code);
-      if (validIsochrones?.[0]?.geojson) {
-        const bounds = bbox(validIsochrones[0].geojson);
-        fitMapToBounds([
-          [bounds[0], bounds[1]],
-          [bounds[2], bounds[3]],
-        ]);
+      if (postalCodes.length === 1) {
+        setHoveredPostcode(postalCodes[0].code);
+        if (validIsochrones?.[0]?.geojson) {
+          const bounds = bbox(validIsochrones[0].geojson);
+          fitMapToBounds([
+            [bounds[0], bounds[1]],
+            [bounds[2], bounds[3]],
+          ]);
+        }
       }
+      if (time <= 0) {
+        setTravelTime(intersectionTime);
+      }
+      cancelInitialPan.current = true;
+      Router.replace({
+        pathname: '/',
+        query: {
+          travelTime: intersectionTime,
+          postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'Something went wrong :(',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
-    if (time <= 0) {
-      setTravelTime(intersectionTime);
-    }
-    cancelInitialPan.current = true;
-    Router.replace({
-      pathname: '/',
-      query: {
-        travelTime: intersectionTime,
-        postalCodes: postalCodes.map((postcode) => `${postcode.code}:${postcode.type}`).join(','),
-      },
-    });
     setIsLoading.off();
   };
 
