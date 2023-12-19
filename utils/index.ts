@@ -12,6 +12,7 @@ export function to<T, U = Error>(
     .then<[null, T]>((data: T) => [null, data])
     .catch<[U, undefined]>((err: U) => {
       if (errorExt) {
+        // @ts-expect-error
         Object.assign(err, errorExt);
       }
 

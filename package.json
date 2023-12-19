@@ -35,6 +35,7 @@
   "devDependencies": {
     "@danmarshall/deckgl-typings": "^4.9.28",
     "@types/geojson": "^7946.0.13",
+    "@types/node": "20.10.0",
     "@types/react": "18.2.45",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",

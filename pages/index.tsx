@@ -33,14 +33,6 @@ const textLayerStyle: LayerProps = {
   paint: {},
 };
 
-interface Viewport {
-  width: number;
-  height: number;
-  latitude: number;
-  longitude: number;
-  zoom: number;
-}
-
 const sgBbox: [[number, number], [number, number]] = [
   [103.56544388367797, 1.197961725210657],
   [104.10960309887196, 1.4957485068241767],
