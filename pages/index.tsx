@@ -1,34 +1,23 @@
-import React, { FC, useEffect, useRef, useState } from 'react';
-import ReactMapGl, {
-  WebMercatorViewport,
-  FlyToInterpolator,
-  TransitionInterpolator,
-  Marker,
-  Source,
-  Layer,
-  LayerProps,
-} from 'react-map-gl';
-import axios from 'axios';
-import { intersect, bbox } from '@turf/turf';
-import { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
-import Router from 'next/router';
-import DeckGl from '@deck.gl/react';
-import { ViewStateProps } from '@deck.gl/core/lib/deck';
-import { IconLayer } from '@deck.gl/layers';
-
 import { Box, useBoolean, useToast } from '@chakra-ui/react';
-
+import { bbox, intersect } from '@turf/turf';
+import axios from 'axios';
+import Isochrones from 'components/Isochrones';
 import Overlap from 'components/Overlap';
 import SearchPanel from 'components/SearchPanel';
-import Isochrones from 'components/Isochrones';
-
-import { Postcode, TravelType, TRAVEL_TIMES, DEFAULT_TRAVEL_TIME } from 'models/postcode';
+import { MRT_DATA } from 'constants/data';
+import { MAPBOX_TOKEN, OTP_HOST } from 'constants/index';
+import { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { Isochrone } from 'models/isochrone';
-
+import { DEFAULT_TRAVEL_TIME, Postcode, TRAVEL_TIMES, TravelType } from 'models/postcode';
+import dynamic from 'next/dynamic';
+import Router from 'next/router';
+import { FC, useRef, useState } from 'react';
+import { Layer, LayerProps, Map, MapRef, Marker, Source, ViewState } from 'react-map-gl';
 import { to } from 'utils/index';
 
-import { MAPBOX_TOKEN, OTP_HOST } from 'constants/index';
-import { MRT_DATA, STATION_SPRITES_MAPPING } from 'constants/data';
+const Deck = dynamic(() => import('../components/Deck'), {
+  ssr: false,
+});
 
 const textLayerStyle: LayerProps = {
   type: 'symbol',
@@ -50,8 +39,6 @@ interface Viewport {
   latitude: number;
   longitude: number;
   zoom: number;
-  transitionDuration?: number;
-  transitionInterpolator?: TransitionInterpolator;
 }
 
 const sgBbox: [[number, number], [number, number]] = [
@@ -59,12 +46,18 @@ const sgBbox: [[number, number], [number, number]] = [
   [104.10960309887196, 1.4957485068241767],
 ];
 
-const intialViewport: Viewport = {
-  width: 0,
-  height: 0,
+const intialViewport: ViewState = {
   latitude: 1.3528246962995887,
   longitude: 103.80871128739545,
   zoom: 9,
+  bearing: 0,
+  pitch: 0,
+  padding: {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
 };
 
 const roundTo3dp = (num: number) => Math.round((num + Number.EPSILON) * 1000) / 1000;
@@ -78,32 +71,17 @@ const Index: FC = () => {
   const [overlap, setOverlap] = useState<Feature<Polygon | MultiPolygon>>();
   const [isLoading, setIsLoading] = useBoolean();
 
+  const mapRef = useRef<MapRef>(null);
+
   const cancelInitialPan = useRef(false);
   const toast = useToast();
 
-  useEffect(() => {
-    setViewport({
-      ...intialViewport,
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-  }, []);
-
   const fitMapToBounds = (bounds: [[number, number], [number, number]], padding = 0): void => {
-    const { longitude, latitude, zoom } = new WebMercatorViewport({
-      ...viewport,
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }).fitBounds(bounds, {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    map.fitBounds(bounds, {
       padding,
-    });
-    setViewport({
-      ...viewport,
-      longitude,
-      latitude,
-      zoom,
-      transitionDuration: 200,
-      transitionInterpolator: new FlyToInterpolator(),
     });
   };
 
@@ -314,11 +292,12 @@ const Index: FC = () => {
 
   return (
     <Box w="100vw" h="100vh" overflow="hidden" pos="relative">
-      <ReactMapGl
+      <Map
         {...viewport}
-        onViewportChange={(nextViewport: Viewport) => setViewport(nextViewport)}
-        mapboxApiAccessToken={MAPBOX_TOKEN}
+        onMove={(ev) => setViewport(ev.viewState)}
+        mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/light-v10"
+        ref={mapRef}
         onLoad={() => {
           if (!cancelInitialPan.current) {
             fitMapToBounds(sgBbox);
@@ -335,22 +314,7 @@ const Index: FC = () => {
         <Source type="geojson" data={MRT_DATA}>
           <Layer {...textLayerStyle} />
         </Source>
-        <DeckGl
-          viewState={viewport as ViewStateProps}
-          layers={[
-            new IconLayer({
-              id: 'station-layer',
-              data: MRT_DATA.features,
-              iconAtlas: '/stations.png',
-              iconMapping: STATION_SPRITES_MAPPING,
-              getIcon: (d: Feature) => d?.properties?.station_codes,
-              getPosition: (d: Feature) => (d?.geometry as Point).coordinates as [number, number],
-              sizeScale: viewport.zoom < 11 ? 0 : viewport.zoom,
-              getSize: 1,
-              getPixelOffset: [0, -10],
-            }),
-          ]}
-        />
+        <Deck zoom={viewport.zoom} />
         {postcodes.map((postcode) => (
           <Marker key={postcode.code} longitude={postcode.lon} latitude={postcode.lat}>
             <Box
@@ -370,8 +334,8 @@ const Index: FC = () => {
             />
           </Marker>
         ))}
-      </ReactMapGl>
-      <Box zIndex={1} pos="absolute" top={0} left={0} h="full" w="full" pointerEvents="none" p={4}>
+      </Map>
+      <Box zIndex={10} pos="absolute" top={0} left={0} h="full" w="full" pointerEvents="none" p={4}>
         <SearchPanel
           postcodes={postcodes}
           setPostcodes={setPostcodes}

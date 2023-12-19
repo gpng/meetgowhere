@@ -1,7 +1,7 @@
-import React, { FC } from 'react';
-import type { AppProps } from 'next/app';
 import { ChakraProvider } from '@chakra-ui/react';
 import { NextSeo } from 'next-seo';
+import type { AppProps } from 'next/app';
+import { FC } from 'react';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
